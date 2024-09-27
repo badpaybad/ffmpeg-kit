@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021 Taner Sener
+ * Copyright (c) 2019-2022 Taner Sener
  *
  * This file is part of FFmpegKit.
  *
@@ -18,7 +18,7 @@
  */
 
 import 'abstract_session.dart';
-import 'execute_callback.dart';
+import 'ffprobe_session_complete_callback.dart';
 import 'log_callback.dart';
 import 'log_redirection_strategy.dart';
 import 'src/ffmpeg_kit_factory.dart';
@@ -27,25 +27,27 @@ import 'src/ffmpeg_kit_factory.dart';
 class FFprobeSession extends AbstractSession {
   /// Creates a new FFprobe session with [argumentsArray].
   static Future<FFprobeSession> create(List<String> argumentsArray,
-      [ExecuteCallback? executeCallback = null,
+      [FFprobeSessionCompleteCallback? completeCallback = null,
       LogCallback? logCallback = null,
       LogRedirectionStrategy? logRedirectionStrategy = null]) async {
     final session = await AbstractSession.createFFprobeSession(
         argumentsArray, logRedirectionStrategy);
     final sessionId = session.getSessionId();
 
-    FFmpegKitFactory.setExecuteCallback(sessionId, executeCallback);
+    FFmpegKitFactory.setFFprobeSessionCompleteCallback(
+        sessionId, completeCallback);
     FFmpegKitFactory.setLogCallback(sessionId, logCallback);
 
     return session;
   }
 
-  /// Creates a new FFprobe session from [sessionMap], which includes session
-  /// fields as map keys.
-  static FFprobeSession fromMap(Map<dynamic, dynamic> sessionMap) =>
-      AbstractSession.createFFprobeSessionFromMap(sessionMap);
+  /// Returns the session specific complete callback.
+  FFprobeSessionCompleteCallback? getCompleteCallback() =>
+      FFmpegKitFactory.getFFprobeSessionCompleteCallback(this.getSessionId());
 
   bool isFFmpeg() => false;
 
   bool isFFprobe() => true;
+
+  bool isMediaInformation() => false;
 }

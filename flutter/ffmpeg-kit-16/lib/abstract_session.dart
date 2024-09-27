@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021 Taner Sener
+ * Copyright (c) 2019-2022 Taner Sener
  *
  * This file is part of FFmpegKit.
  *
@@ -20,7 +20,6 @@
 import 'package:ffmpeg_kit_flutter_platform_interface/ffmpeg_kit_flutter_platform_interface.dart';
 import 'package:flutter/services.dart';
 
-import 'execute_callback.dart';
 import 'ffmpeg_kit_config.dart';
 import 'ffmpeg_session.dart';
 import 'ffprobe_session.dart';
@@ -35,8 +34,8 @@ import 'session_state.dart';
 import 'src/ffmpeg_kit_factory.dart';
 
 /// Abstract session implementation which includes common features shared by
-/// "FFmpeg" and "FFprobe" sessions.
-class AbstractSession extends Session {
+/// "FFmpeg", "FFprobe" and "MediaInformation" sessions.
+abstract class AbstractSession extends Session {
   static FFmpegKitPlatform _platform = FFmpegKitPlatform.instance;
 
   /// Defines how long default "getAll" methods wait, in milliseconds.
@@ -65,7 +64,7 @@ class AbstractSession extends Session {
   ///
   /// Returns FFmpeg session created.
   static Future<FFmpegSession> createFFmpegSession(List<String> argumentsArray,
-      [LogRedirectionStrategy? logRedirectionStrategy = null]) async {
+      [LogRedirectionStrategy? logRedirectionStrategy]) async {
     try {
       await FFmpegKitConfig.init();
       final Map<dynamic, dynamic>? nativeSession =
@@ -119,7 +118,7 @@ class AbstractSession extends Session {
   /// Returns FFprobe session created.
   static Future<FFprobeSession> createFFprobeSession(
       List<String> argumentsArray,
-      [LogRedirectionStrategy? logRedirectionStrategy = null]) async {
+      [LogRedirectionStrategy? logRedirectionStrategy]) async {
     try {
       await FFmpegKitConfig.init();
       final Map<dynamic, dynamic>? nativeSession =
@@ -221,11 +220,7 @@ class AbstractSession extends Session {
     return session;
   }
 
-  /// Returns the session specific execute callback function.
-  ExecuteCallback? getExecuteCallback() =>
-      FFmpegKitFactory.getExecuteCallback(this.getSessionId());
-
-  /// Returns the session specific log callback function.
+  /// Returns the session specific log callback.
   LogCallback? getLogCallback() =>
       FFmpegKitFactory.getLogCallback(this.getSessionId());
 
@@ -429,6 +424,22 @@ class AbstractSession extends Session {
   /// Returns whether it is an "FFprobe" session or not.
   bool isFFprobe() => false;
 
+  /// Returns whether it is an "MediaInformation" session or not.
+  bool isMediaInformation() => false;
+
   /// Cancels running the session.
-  void cancel() {}
+  Future<void> cancel() async {
+    try {
+      final int? sessionId = getSessionId();
+      await FFmpegKitConfig.init();
+      if (sessionId == null) {
+        return _platform.ffmpegKitCancel();
+      } else {
+        return _platform.ffmpegKitCancelSession(sessionId);
+      }
+    } on PlatformException catch (e, stack) {
+      print("Plugin cancel error: ${e.message}");
+      return Future.error("cancel failed.", stack);
+    }
+  }
 }
